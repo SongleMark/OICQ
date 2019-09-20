@@ -30,7 +30,7 @@ public:
     bool ReadFromMysql(const char *name, const char *password);
 
 private:
-    explicit StorageService(char *db = (char *)"TCP", char *user = (char *)"root", \
+    explicit StorageService(char *db = (char *)"OICQ", char *user = (char *)"root", \
                             char *host = (char *)"localhost", char *password = (char *)"123456");
     MYSQL *mMysql;     /*数据库句柄                      */
     MYSQL_RES *mResult;/*结果集                         */

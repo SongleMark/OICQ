@@ -48,8 +48,10 @@ struct Message
 {
     int recvid;//接受者的id(文件描述符)
     int sendid;//发送者的id(文件描述符)
-    char *name;//发送者的名字
+    char sendname[32];//发送者的名字
+    char recvname[32];//接受者的名字
     char message[100];//发送的信息
+    char time[32]; //消息发送的时间
 };
 
 class Server

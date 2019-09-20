@@ -318,6 +318,9 @@ bool Server::DealMessage()
     {
         LOG(TAG, "read message = ", message.message);
         LOG(TAG, "read recver fd = ", message.recvid);
+        LOG(TAG, "send message time = ", message.time);
+        LOG(TAG, "recv name = ", message.recvname);
+        LOG(TAG, "send name = ", message.sendname);
         message.sendid = mTempfd;//将发送者的id给接受者，以便接收者回复
         Package *pack = (Package *)malloc(sizeof(Package) + sizeof(Message));
         Package temp;

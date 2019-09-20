@@ -54,9 +54,11 @@ void MainWindow::LoginMenu()
     int select;
     bool IsStop = false;
     OnlineUser *head = NULL;
+
     while(!IsStop)
     {
         system("clear");
+        LOG(TAG, "\tWelCome, ", mName);
         std::cout << mLoginUi ;
         LOGI(&select);
 
@@ -70,9 +72,14 @@ void MainWindow::LoginMenu()
             ShowOnlineUser(head);
             break;
         case SENDONE://向某个用户发送单个信息
-            SendSignalMessage(head);
+            SendSignalMessage();
             break;
         case SENDALL://向所有在线用户发送信息
+            //先发送获取在线用户链表的指令
+            mClient->WriteData();
+            //然后读取
+            head = mClient->ReadOnlineUserNode();
+            SendAllUserMessage(head);
             break;
         case RECVMESSAGE://接收消息
             RecvMessage();
@@ -104,7 +111,7 @@ void MainWindow::ShowOnlineUser(OnlineUser *head)
     while(NULL != p)
     {
         std::cout << "\t\t\t*" << count << "            " << p->id << "           " << p->name 
-                  << "        " << p->port << "         " << p->ip << "\n\n";
+                  << "        " << p->port << "      " << p->ip << "*\n\n";
         p = p->next;
         count ++;
     }
@@ -116,14 +123,19 @@ void MainWindow::ShowOnlineUser(OnlineUser *head)
 }
 
 //发送单个信息操作函数
-void MainWindow::SendSignalMessage(OnlineUser *head)
+void MainWindow::SendSignalMessage()
 {
+    //先发送获取在线用户链表的指令
+    mClient->WriteData();
+    //然后读取
+    OnlineUser *head = mClient->ReadOnlineUserNode();
+    ShowOnlineUser(head);
+
     if(NULL == head)
     {
-        LOG(TAG, "there don't have user ...");
         return ;
     }
-    std::cout << "请选择接受者的ID：";
+    std::cout << "请选择接收者的ID：";
     std::cin >> mMessage.recvid;
     OnlineUser *p = head;
     while(p)
@@ -141,33 +153,93 @@ void MainWindow::SendSignalMessage(OnlineUser *head)
     }
     mIp = p->ip;
     mPort = p->port;
-    LOG(TAG, "your send user ip = ", mIp);
-    LOG(TAG, "your send user port = ", mPort);
-    std::cout << "请输入发送的信息: " << std::endl;
+    std::cout << "请输入发送的信息: ";
     std::cin >> mMessage.message;
-    mMessage.name = mName;
+    strcpy(mMessage.sendname ,mName);//发送者姓名
+    strcpy(mMessage.recvname, p->name);//接收者姓名，在接受者回复时可用
+    GetCurrentTime();
 
     mClient->WriteData(mMessage);
- #if 0   
-    Communication  communication(mIp, mPort);
-    if(communication.InitClient())
+}
+
+//向所有在线用户发送信息
+void MainWindow::SendAllUserMessage(OnlineUser *head)
+{
+    if(NULL == head)
     {
-        communication.SendSignalMessage(mMessage);
+        LOGE(TAG, "don't has online user ...");
+        return ;
     }
-#endif
+
+    int count = 0;
+    OnlineUser *p = head;
+    OnlineUser *pfd = head;
+    //先获取总共有多少在线用户
+    while(NULL != p)
+    {
+        count ++;
+        p = p->next;
+    }
+    Message message[count]; //待发送的消息结构体
+    int i = 0;
+    //获取时间
+    time_t td = time(NULL);
+    tm *current_time = localtime(&td);
+    char str[32];
+    strftime(str, 32, "%F-%T", current_time);
+    while(NULL != pfd)
+    {
+        message[i].recvid = pfd->id; //接收者ID
+        strcpy(message[i].recvname, pfd->name);//接收者姓名
+        strcpy(message[i].time, str);//发送消息的时间
+        i ++;
+        pfd = pfd->next;
+    }
+    char mes[100];
+    std::cout << "请输入发送的信息: ";
+    std::cin >> mes;
+    for(int i = 0; i < count ; i ++)
+    {
+        strcpy(message[i].message, mes); //将发送的消息
+        strcpy(message[i].sendname, mName);//发送者姓名
+    }
+    
+    for(int i = 0; i < count ; i ++)
+    {
+        mClient->WriteData(message[i]);
+    }
+
 }
 
 //接收信息
 void MainWindow::RecvMessage()
 {
-    LOG(TAG, "start to client->readmessage ...");
-    mClient->ReadMessage();
-    LOG(TAG, "mClient->ReadMessage end ...");
-#if 0
-    Communication communication("127.0.0.1", mClient->GetPort());
-    if(communication.InitClient())
+    //LOG(TAG, "start to client->readmessage ...");
+    bool ret = mClient->ReadMessage();
+    if(ret)
     {
-        communication.RecvMessage();
+        //LOG(TAG, "mClient->ReadMessage end ...");
     }
-#endif
+    else
+    {
+        LOG(TAG, "read message error ...");
+        return;
+    }
+}
+
+//获取发送消息的时间
+void MainWindow::GetCurrentTime()
+{
+    time_t td = time(NULL);
+    tm *current_time = localtime(&td);
+    char str[32];
+    strftime(str, 32, "%F-%T", current_time);
+    strcpy(mMessage.time, str);
+}
+
+//线程同步接受信息--未使用
+void *MainWindow::RecvThread(void *thread)
+{
+    MainWindow *recvtask = (MainWindow *)thread;
+    recvtask->RecvMessage();
 }

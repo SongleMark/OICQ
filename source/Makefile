@@ -27,7 +27,7 @@ all:$(TARGET)
 
 #create client
 client:$(CLIENT)
-	$(CXX)  $(COBJECT) 	   #生成client可执行文件
+	$(CXX)  $(COBJECT) 	$(LIB)   #生成client可执行文件
 
 client.o:client.cpp 
 	$(CXX) -c client.cpp $(INCLUDEPATH)  $(FLAG) client.o 

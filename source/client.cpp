@@ -296,16 +296,14 @@ bool Client::ReadData(const char *name)
 //从服务器读取用户发送的信息
 bool Client::ReadMessage()
 {
-    LOG(TAG, "this is ReadMessage() ...");
     Message message ;
     Package *pack = (Package *)malloc(sizeof(Package));
     bool IsStop = false;
     int result = 0;
+    char sel[12];
 
-    LOG(TAG, "start to read ...");
     while(!IsStop)
     {
-        LOG(TAG, "read pack_head ...");
         result = read(mSocketfd, pack, sizeof(Package));
         if(result < 0)
         {
@@ -320,28 +318,48 @@ bool Client::ReadMessage()
         }
         if(pack->type == ZERO)
         {
+            LOG(TAG, "read over ...");
             IsStop = true;
         }
         else if(pack->type == MESSAGE)
         {
-            LOG(TAG, "read message ...");
             result = read(mSocketfd, &message, pack->len);
-            LOG(TAG, "read message over ...");
             if(result < 0)
             {
                 LOGE(TAG, "read error ...");
                 perror("read:");
                 return false;
             }
-            std::cout << "id:" << message.sendid << "\tname:" << message.name << ": \n";
+            //打印接收到的消息
+            std::cout << GREEN << message.time << ":[" << message.sendname << "(ID = " << message.sendid << ")]:" << SRC << std::endl;
             std::cout << message.message << std::endl; 
+            //是否进行回复
+            std::cout << "是否回复?(yes/no): ";
+            std::cin >> sel;
+            if(0 == strcmp(sel, "yes") || 0 == strcmp(sel, "YES"))
+            {
+                Message replymessage;
+                std::cout << "请输入发送的信息: ";
+                std::cin >> replymessage.message;
+                replymessage.recvid = message.sendid;
+                replymessage.sendid = message.recvid;
+                strcpy(replymessage.sendname ,message.recvname);//发送者姓名,此时为刚接收的信息中的接收者姓名
+                strcpy(replymessage.recvname, message.sendname);//接收者姓名，此时为刚接收的信息中的发送者姓名
+                time_t td = time(NULL);
+                tm *curtime = localtime(&td);
+                char str[32];
+                strftime(str, 32, "%F-%T", curtime);
+                strcpy(replymessage.time, str);
+
+                WriteData(replymessage);
+            }
         }
         else
         {
             IsStop = true;
         } 
     }
-    
+
     return true; 
 }
 

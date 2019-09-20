@@ -30,8 +30,11 @@ public:
     void MainMenu();
     void LoginMenu();
     void ShowOnlineUser(OnlineUser *head);
-    void SendSignalMessage(OnlineUser *head);
+    void SendSignalMessage();
+    void SendAllUserMessage(OnlineUser *head);
     void RecvMessage();
+    static void *RecvThread(void *thread);
+    void GetCurrentTime();
 
 private:
     std::string mMainUi;

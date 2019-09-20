@@ -27,7 +27,7 @@ all:$(TARGET)
 
 #create client
 client:$(CLIENT)
-	$(CXX)  $(COBJECT) 		 #生成client可执行文件
+	$(CXX)  $(COBJECT) 	   #生成client可执行文件
 
 client.o:client.cpp 
 	$(CXX) -c client.cpp $(INCLUDEPATH)  $(FLAG) client.o 
@@ -52,7 +52,7 @@ logger.o:logger.cpp
 
 #create server
 server:$(SERVER)
-	$(CXX) $(SOBJECT) $(LIB)  #生成server可执行文件
+	$(CXX) $(SOBJECT) $(LIB)         #生成server可执行文件
 
 server.o:server.cpp
 	$(CXX) -c server.cpp $(INCLUDEPATH) $(FLAG) server.o

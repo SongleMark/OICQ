@@ -19,6 +19,7 @@ bool Client::Init()
     int result = 0;
     mIsStop = false;
     signal(SIGPIPE, RecvSignal);
+    SetIPandPort();
     LOG(TAG, "socket ...");
     mSocketfd = socket(AF_INET, SOCK_STREAM, 0);
     if(mSocketfd < 0)
@@ -44,6 +45,36 @@ bool Client::Init()
 void Client::DeInit()
 {
     mIsStop = true;
+}
+
+void Client::SetIPandPort()
+{
+    char select[12];
+    char ip[20];
+    system("clear");
+    LOG(TAG, "默认连接的IPV4 = ", mIp);
+    LOG(TAG, "默认连接的Port = ", mPort);
+    LOG(TAG, "是否更改连接的ip及port(yes/no)?");
+    LOGI(select);
+    if(0 == strcmp(select, "yes") || 0 == strcmp(select, "YES"))
+    {
+        LOG(TAG, "请输入新IPV4：");
+        LOGI(ip);
+        //mIp = ip;
+        mIp = new char[20];
+        strcpy(mIp, ip);
+        LOG(TAG, "请输入新PORT: ");
+        LOGI(&mPort);
+    }
+    else
+    {
+        LOG(TAG, "连接默认的ip地址和端口");
+        sleep(1);
+        return ;
+    }
+    LOG(TAG, "当前连接的IPV4 = ", mIp);
+    LOG(TAG, "当前连接的Port = ", mPort); 
+    sleep(1);
 }
 
 bool Client::Connect()
@@ -150,7 +181,75 @@ bool Client::WriteData(LoginInfo logininfo)
     return true;
 }
 
-//读取注册与登录成功与否
+//向服务器获取在线用户链表
+bool Client::WriteData()
+{
+    int result = 0;
+    int online = 1;
+    Package *pack = (Package *)malloc(sizeof(Package) + sizeof(int));
+    if(NULL == pack)
+    {
+        LOGE(TAG, "malloc error ...");
+        return false;
+    }
+    pack->type = GETONLINEUSER;
+    pack->len = sizeof(Package) + sizeof(int);
+    memcpy(pack->data, &online, sizeof(int));
+
+    result = write(mSocketfd, pack, pack->len);
+    if(result < 0)
+    {
+        LOGE(TAG, "write error ...");
+        return false;
+    }
+
+    pack->type = ZERO;
+    result = write(mSocketfd, pack, sizeof(Package));
+    if(result < 0)
+    {
+        LOGE(TAG, "write error ...");
+        return false;
+    }
+    LOG(TAG, "send get online user commond success ..."); 
+    free(pack);
+
+    return true;
+}
+
+//向服务器发送用户输入的信息
+bool Client::WriteData(Message message)
+{
+    int result = 0;
+    Package *pack = (Package *)malloc(sizeof(Package) + sizeof(Message));
+    if(NULL == pack)
+    {
+        LOGE(TAG, "malloc error ...");
+        return false;
+    }
+    pack->type = MESSAGE;
+    pack->len = sizeof(Package) + sizeof(Message);
+    memcpy(pack->data, &message, sizeof(Message));
+
+    result = write(mSocketfd, pack, pack->len);
+    if(result < 0)
+    {
+        LOGE(TAG, "write error ...");
+        return false;
+    }
+
+    pack->type = ZERO;
+    result = write(mSocketfd, pack, sizeof(Package));
+    if(result < 0)
+    {
+        LOGE(TAG, "write error ...");
+        return false;
+    }
+    free(pack);
+
+    return true;
+}
+
+//读取注册/登录成功与否
 bool Client::ReadData(const char *name)
 {
     int result = 0;
@@ -178,7 +277,9 @@ bool Client::ReadData(const char *name)
                 break;
             case LFAILED:
                 system("clear");
+                std::cout << RED ;               
                 LOG(TAG, "登录失败");
+                std::cout << SRC;
                 sleep(1);
                 return false;
             case LSUCCESSED:
@@ -192,7 +293,138 @@ bool Client::ReadData(const char *name)
 	return true;
 }
 
+//从服务器读取用户发送的信息
+bool Client::ReadMessage()
+{
+    LOG(TAG, "this is ReadMessage() ...");
+    Message message ;
+    Package *pack = (Package *)malloc(sizeof(Package));
+    bool IsStop = false;
+    int result = 0;
+
+    LOG(TAG, "start to read ...");
+    while(!IsStop)
+    {
+        LOG(TAG, "read pack_head ...");
+        result = read(mSocketfd, pack, sizeof(Package));
+        if(result < 0)
+        {
+            LOGE(TAG, "read error ...");
+            perror("read:");
+            return false;
+        }
+        else if(0 == result)
+        {
+            LOG(TAG, "read over ...");
+            IsStop = true;
+        }
+        if(pack->type == ZERO)
+        {
+            IsStop = true;
+        }
+        else if(pack->type == MESSAGE)
+        {
+            LOG(TAG, "read message ...");
+            result = read(mSocketfd, &message, pack->len);
+            LOG(TAG, "read message over ...");
+            if(result < 0)
+            {
+                LOGE(TAG, "read error ...");
+                perror("read:");
+                return false;
+            }
+            std::cout << "id:" << message.sendid << "\tname:" << message.name << ": \n";
+            std::cout << message.message << std::endl; 
+        }
+        else
+        {
+            IsStop = true;
+        } 
+    }
+    
+    return true; 
+}
+
+//读取从服务器发送过来的在线用户链表
+OnlineUser *Client::ReadOnlineUserNode()
+{
+    OnlineUser *head = NULL;
+    OnlineUser *pnew = NULL;
+    OnlineUser *last = NULL;
+    int result = 0;
+    bool IsStop = false;
+    Package pack;
+
+    while(!IsStop)
+    {
+        result = read(mSocketfd, &pack, sizeof(Package));
+        if(result < 0)
+        {
+            LOGE(TAG, "read error ...");
+            return head;
+        }
+        else if(0 == result)
+        {
+            IsStop = true;
+        }
+        if(pack.type == ZERO)
+        {
+            LOG(TAG, "read over ...");
+            IsStop = true;
+        }
+        else if(pack.type == GETONLINEUSER)
+        {
+            pnew = (OnlineUser *)malloc(sizeof(OnlineUser));
+            if(NULL == pnew)
+            {
+                LOGE(TAG, "malloc error ...");
+                return head;
+            }
+            int ret = read(mSocketfd, pnew, sizeof(OnlineUser));
+            if(ret < 0)
+            {
+                LOGE(TAG, "read error ...");
+                return head;
+            }
+            pnew->next = head;
+            head = pnew;
+            #if 0
+            if(NULL == head)
+            {
+                head = pnew;
+            }
+            else
+            {
+                last = head;
+                while(NULL != last->next)
+                {
+                    last = last->next;
+                }
+                last->next = pnew;
+            }  
+            #endif   
+        }
+        else
+        {
+            LOG(TAG, "read over ...");
+            IsStop = true;    
+        }      
+    }
+
+    return head;
+}
+
 void Client::RecvSignal(int sig)
 {
     LOG(TAG, "recv signal is : ", sig);
+}
+
+char *Client::GetAddress()
+{
+    return mIp;
+}
+
+unsigned short Client::GetPort()
+{
+    return mPort;
 }

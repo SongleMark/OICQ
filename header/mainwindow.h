@@ -34,6 +34,7 @@ public:
     void SendAllUserMessage(OnlineUser *head);
     void RecvMessage();
     static void *RecvThread(void *thread);
+    static void *SendThread(void *thread);
     void GetCurrentTime();
 
 private:

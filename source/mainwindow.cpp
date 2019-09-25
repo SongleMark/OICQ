@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include "../header/logger.h"
 #include "../header/client.h"
+#include <vector>
 #define TAG "MainWindow"
 
 MainWindow::MainWindow(Client *client, std::string main, std::string loginui, bool stop):
@@ -39,6 +40,15 @@ void MainWindow::MainMenu()
                     //mName = mLogin->GetUserName();
                     strcpy(mName, mLogin->GetUserName());
                     LoginMenu();
+
+                    //pthread_t pt[1];
+                    //void *pe[1];
+                    //pthread_create(&pt[1], NULL, SendThread, this);                   
+                    
+                    //pthread_create(&pt[0], NULL, RecvThread, this);
+                    //pthread_join(pt[0], &pe[0]);
+                    //pthread_join(pt[1], &pe[1]);
+                    
                 }
                 break;
             case EXIT://其他选项则退出
@@ -58,7 +68,7 @@ void MainWindow::LoginMenu()
     while(!IsStop)
     {
         system("clear");
-        LOG(TAG, "\tWelCome, ", mName);
+        LOG(TAG, "WelCome, ", mName);
         std::cout << mLoginUi ;
         LOGI(&select);
 
@@ -94,7 +104,6 @@ void MainWindow::LoginMenu()
 //打印在线用户信息
 void MainWindow::ShowOnlineUser(OnlineUser *head)
 {
-    LOG(TAG, "start show user ...");
     if(NULL == head)
     {
         LOGE(TAG, "当前没有登录用户");
@@ -154,7 +163,7 @@ void MainWindow::SendSignalMessage()
     mIp = p->ip;
     mPort = p->port;
     std::cout << "请输入发送的信息: ";
-    std::cin >> mMessage.message;
+    std::cin >> mMessage.message;//消息
     strcpy(mMessage.sendname ,mName);//发送者姓名
     strcpy(mMessage.recvname, p->name);//接收者姓名，在接受者回复时可用
     GetCurrentTime();
@@ -180,7 +189,8 @@ void MainWindow::SendAllUserMessage(OnlineUser *head)
         count ++;
         p = p->next;
     }
-    Message message[count]; //待发送的消息结构体
+    //std::vector<Message> message; //待发送的消息结构体
+    Message message[count]; 
     int i = 0;
     //获取时间
     time_t td = time(NULL);
@@ -204,7 +214,7 @@ void MainWindow::SendAllUserMessage(OnlineUser *head)
         strcpy(message[i].sendname, mName);//发送者姓名
     }
     
-    for(int i = 0; i < count ; i ++)
+    for(int  i = 0; i < count ; i ++)
     {
         mClient->WriteData(message[i]);
     }
@@ -242,4 +252,10 @@ void *MainWindow::RecvThread(void *thread)
 {
     MainWindow *recvtask = (MainWindow *)thread;
     recvtask->RecvMessage();
+}
+
+void *MainWindow::SendThread(void *thread)
+{
+     MainWindow *sendtask = (MainWindow *)thread;
+     sendtask->LoginMenu();
 }

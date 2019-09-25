@@ -36,6 +36,15 @@ bool Server::Init()
     mSaddr.sin_family = AF_INET;
     mSaddr.sin_port = htons(mPort);
     mSaddr.sin_addr.s_addr = INADDR_ANY;
+
+    socklen_t on = 1;
+    //防止binderror
+    result = setsockopt(mSocketfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+    if(result < 0)
+    {
+        LOG(TAG, "setsockopt error ...");
+        return false;
+    }
     LOG(TAG, "bind ...");
     result = bind(mSocketfd, (sockaddr *)&mSaddr, (socklen_t)sizeof(mSaddr));
     if(result < 0)

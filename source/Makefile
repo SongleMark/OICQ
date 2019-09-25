@@ -20,7 +20,7 @@ SERVER		= server.o \
 COBJECT		= $(CLIENT) -o  client
 SOBJECT		= $(SERVER) -o  server
 TARGET		= client server
-LIB			= -lpthread -lmysqlclient
+LIB			= -lpthread -lmysqlclient -std=c++11
 CLEAN		= rm *.o
 
 all:$(TARGET)

@@ -210,7 +210,7 @@ bool Client::WriteData()
         LOGE(TAG, "write error ...");
         return false;
     }
-    LOG(TAG, "send get online user commond success ..."); 
+    //LOG(TAG, "send get online user commond success ..."); 
     free(pack);
 
     return true;
@@ -266,26 +266,25 @@ bool Client::ReadData(const char *name)
         switch(data)
         {
             case RFAILED:
-                system("clear");
+                //system("clear");
                 LOGE(TAG, "注册失败, 数据库操作失败或用户名已存在!!!");
                 sleep(1);
                 break;
             case RSUCCESSED:
-                system("clear");
+                //system("clear");
                 LOG(TAG, "注册成功");
                 sleep(1);
                 break;
             case LFAILED:
-                system("clear");
+                //system("clear");
                 std::cout << RED ;               
                 LOG(TAG, "登录失败");
                 std::cout << SRC;
                 sleep(1);
                 return false;
             case LSUCCESSED:
-                system("clear");
+                //system("clear");
                 LOG(TAG, "登录成功, 欢迎", name);
-                sleep(1);
                 break;
         }
     }
@@ -424,7 +423,7 @@ OnlineUser *Client::ReadOnlineUserNode()
         }
         else
         {
-            LOG(TAG, "read over ...");
+            //LOG(TAG, "read over ...");
             IsStop = true;    
         }      
     }
